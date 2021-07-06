@@ -19,9 +19,9 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   name='TursomMsg.proto',
   package='cn.tursom.im.protobuf',
   syntax='proto3',
-  serialized_options=b'B\tTursomMsgH\003Z\024./tursom_im_protobuf',
+  serialized_options=b'B\tTursomMsgH\001Z\024./tursom_im_protobuf',
   create_key=_descriptor._internal_create_key,
-  serialized_pb=b'\n\x0fTursomMsg.proto\x12\x15\x63n.tursom.im.protobuf\x1a\x19google/protobuf/any.proto\"\xe1\x05\n\x05ImMsg\x12\r\n\x05msgId\x18\x01 \x01(\t\x12\x0f\n\x07selfMsg\x18\x07 \x01(\x08\x12;\n\x0cloginRequest\x18\x02 \x01(\x0b\x32#.cn.tursom.im.protobuf.LoginRequestH\x00\x12\x39\n\x0bloginResult\x18\x03 \x01(\x0b\x32\".cn.tursom.im.protobuf.LoginResultH\x00\x12\x31\n\x07\x63hatMsg\x18\x04 \x01(\x0b\x32\x1e.cn.tursom.im.protobuf.ChatMsgH\x00\x12?\n\x0esendMsgRequest\x18\x05 \x01(\x0b\x32%.cn.tursom.im.protobuf.SendMsgRequestH\x00\x12\x41\n\x0fsendMsgResponse\x18\x06 \x01(\x0b\x32&.cn.tursom.im.protobuf.SendMsgResponseH\x00\x12\x13\n\theartBeat\x18\x08 \x01(\tH\x00\x12I\n\x13\x61llocateNodeRequest\x18\t \x01(\x0b\x32*.cn.tursom.im.protobuf.AllocateNodeRequestH\x00\x12K\n\x14\x61llocateNodeResponse\x18\n \x01(\x0b\x32+.cn.tursom.im.protobuf.AllocateNodeResponseH\x00\x12K\n\x14sendBroadcastRequest\x18\x0b \x01(\x0b\x32+.cn.tursom.im.protobuf.SendBroadcastRequestH\x00\x12M\n\x15sendBroadcastResponse\x18\x0c \x01(\x0b\x32,.cn.tursom.im.protobuf.SendBroadcastResponseH\x00\x12\x35\n\tbroadcast\x18\r \x01(\x0b\x32 .cn.tursom.im.protobuf.BroadcastH\x00\x42\t\n\x07\x63ontent\"\x1d\n\x0cLoginRequest\x12\r\n\x05token\x18\x01 \x01(\t\"0\n\x0bLoginResult\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x10\n\x08imUserId\x18\x02 \x01(\t\"K\n\nMsgContent\x12\r\n\x03msg\x18\x01 \x01(\tH\x00\x12#\n\x03\x65xt\x18\x02 \x01(\x0b\x32\x14.google.protobuf.AnyH\x00\x42\t\n\x07\x63ontent\"e\n\x0eSendMsgRequest\x12\x10\n\x08receiver\x18\x01 \x01(\t\x12\r\n\x05reqId\x18\x02 \x01(\t\x12\x32\n\x07\x63ontent\x18\x03 \x01(\x0b\x32!.cn.tursom.im.protobuf.MsgContent\"\x87\x01\n\x0fSendMsgResponse\x12\x10\n\x08receiver\x18\x01 \x01(\t\x12\r\n\x05reqId\x18\x02 \x01(\t\x12\x0f\n\x07success\x18\x03 \x01(\x08\x12\x0f\n\x07\x66\x61ilMsg\x18\x04 \x01(\t\x12\x31\n\x08\x66\x61ilType\x18\x05 \x01(\x0e\x32\x1f.cn.tursom.im.protobuf.FailType\"_\n\x07\x43hatMsg\x12\x10\n\x08receiver\x18\x01 \x01(\t\x12\x0e\n\x06sender\x18\x02 \x01(\t\x12\x32\n\x07\x63ontent\x18\x03 \x01(\x0b\x32!.cn.tursom.im.protobuf.MsgContent\"K\n\x13\x41llocateNodeRequest\x12\r\n\x05reqId\x18\x01 \x01(\t\x12\x0c\n\x04mask\x18\x02 \x01(\x05\x12\x17\n\x0f\x63urrentNodeName\x18\x03 \x01(\t\"3\n\x14\x41llocateNodeResponse\x12\r\n\x05reqId\x18\x01 \x01(\t\x12\x0c\n\x04node\x18\x02 \x01(\x05\"j\n\x14SendBroadcastRequest\x12\r\n\x05reqId\x18\x01 \x01(\t\x12\x0f\n\x07\x63hannel\x18\x02 \x01(\x05\x12\x32\n\x07\x63ontent\x18\x03 \x01(\x0b\x32!.cn.tursom.im.protobuf.MsgContent\"N\n\x15SendBroadcastResponse\x12\r\n\x05reqId\x18\x01 \x01(\t\x12\x0f\n\x07success\x18\x02 \x01(\x08\x12\x15\n\rreceiverCount\x18\x03 \x01(\x05\"_\n\tBroadcast\x12\r\n\x05reqId\x18\x01 \x01(\t\x12\x0f\n\x07\x63hannel\x18\x02 \x01(\x05\x12\x32\n\x07\x63ontent\x18\x03 \x01(\x0b\x32!.cn.tursom.im.protobuf.MsgContent*\xbd\x01\n\x08\x46\x61ilType\x12\x0b\n\x07UNKNOWN\x10\x00\x12\x10\n\x0cIN_BLACKLIST\x10\x01\x12\x14\n\x10TARGET_NOT_LOGIN\x10\x02\x12\x14\n\x10MSG_SAVE_FAILURE\x10\x03\x12\x13\n\x0fTARGET_IS_EMPTY\x10\x04\x12\x13\n\x0fGROUP_NOT_EXIST\x10\x05\x12\x0f\n\x0bGROUP_MUTED\x10\x06\x12\x14\n\x10GROUP_USER_MUTED\x10\x07\x12\x15\n\x11USER_NOT_IN_GROUP\x10\x08\x42#B\tTursomMsgH\x03Z\x14./tursom_im_protobufb\x06proto3'
+  serialized_pb=b'\n\x0fTursomMsg.proto\x12\x15\x63n.tursom.im.protobuf\x1a\x19google/protobuf/any.proto\"\x85\x07\n\x05ImMsg\x12\r\n\x05msgId\x18\x01 \x01(\t\x12\x0f\n\x07selfMsg\x18\x07 \x01(\x08\x12;\n\x0cloginRequest\x18\x02 \x01(\x0b\x32#.cn.tursom.im.protobuf.LoginRequestH\x00\x12\x39\n\x0bloginResult\x18\x03 \x01(\x0b\x32\".cn.tursom.im.protobuf.LoginResultH\x00\x12\x31\n\x07\x63hatMsg\x18\x04 \x01(\x0b\x32\x1e.cn.tursom.im.protobuf.ChatMsgH\x00\x12?\n\x0esendMsgRequest\x18\x05 \x01(\x0b\x32%.cn.tursom.im.protobuf.SendMsgRequestH\x00\x12\x41\n\x0fsendMsgResponse\x18\x06 \x01(\x0b\x32&.cn.tursom.im.protobuf.SendMsgResponseH\x00\x12\x13\n\theartBeat\x18\x08 \x01(\tH\x00\x12I\n\x13\x61llocateNodeRequest\x18\t \x01(\x0b\x32*.cn.tursom.im.protobuf.AllocateNodeRequestH\x00\x12K\n\x14\x61llocateNodeResponse\x18\n \x01(\x0b\x32+.cn.tursom.im.protobuf.AllocateNodeResponseH\x00\x12O\n\x16listenBroadcastRequest\x18\x0b \x01(\x0b\x32-.cn.tursom.im.protobuf.ListenBroadcastRequestH\x00\x12Q\n\x17listenBroadcastResponse\x18\x0c \x01(\x0b\x32..cn.tursom.im.protobuf.ListenBroadcastResponseH\x00\x12K\n\x14sendBroadcastRequest\x18\r \x01(\x0b\x32+.cn.tursom.im.protobuf.SendBroadcastRequestH\x00\x12M\n\x15sendBroadcastResponse\x18\x0e \x01(\x0b\x32,.cn.tursom.im.protobuf.SendBroadcastResponseH\x00\x12\x35\n\tbroadcast\x18\x0f \x01(\x0b\x32 .cn.tursom.im.protobuf.BroadcastH\x00\x42\t\n\x07\x63ontent\"\x1d\n\x0cLoginRequest\x12\r\n\x05token\x18\x01 \x01(\t\"0\n\x0bLoginResult\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x10\n\x08imUserId\x18\x02 \x01(\t\"K\n\nMsgContent\x12\r\n\x03msg\x18\x01 \x01(\tH\x00\x12#\n\x03\x65xt\x18\x02 \x01(\x0b\x32\x14.google.protobuf.AnyH\x00\x42\t\n\x07\x63ontent\"e\n\x0eSendMsgRequest\x12\x10\n\x08receiver\x18\x01 \x01(\t\x12\r\n\x05reqId\x18\x02 \x01(\t\x12\x32\n\x07\x63ontent\x18\x03 \x01(\x0b\x32!.cn.tursom.im.protobuf.MsgContent\"\x87\x01\n\x0fSendMsgResponse\x12\x10\n\x08receiver\x18\x01 \x01(\t\x12\r\n\x05reqId\x18\x02 \x01(\t\x12\x0f\n\x07success\x18\x03 \x01(\x08\x12\x0f\n\x07\x66\x61ilMsg\x18\x04 \x01(\t\x12\x31\n\x08\x66\x61ilType\x18\x05 \x01(\x0e\x32\x1f.cn.tursom.im.protobuf.FailType\"_\n\x07\x43hatMsg\x12\x10\n\x08receiver\x18\x01 \x01(\t\x12\x0e\n\x06sender\x18\x02 \x01(\t\x12\x32\n\x07\x63ontent\x18\x03 \x01(\x0b\x32!.cn.tursom.im.protobuf.MsgContent\"K\n\x13\x41llocateNodeRequest\x12\r\n\x05reqId\x18\x01 \x01(\t\x12\x0c\n\x04mask\x18\x02 \x01(\x05\x12\x17\n\x0f\x63urrentNodeName\x18\x03 \x01(\t\"3\n\x14\x41llocateNodeResponse\x12\r\n\x05reqId\x18\x01 \x01(\t\x12\x0c\n\x04node\x18\x02 \x01(\x05\"N\n\x16ListenBroadcastRequest\x12\r\n\x05reqId\x18\x01 \x01(\t\x12\x0f\n\x07\x63hannel\x18\x02 \x01(\x05\x12\x14\n\x0c\x63\x61ncelListen\x18\x03 \x01(\x08\"9\n\x17ListenBroadcastResponse\x12\r\n\x05reqId\x18\x01 \x01(\t\x12\x0f\n\x07success\x18\x02 \x01(\x08\"j\n\x14SendBroadcastRequest\x12\r\n\x05reqId\x18\x01 \x01(\t\x12\x0f\n\x07\x63hannel\x18\x02 \x01(\x05\x12\x32\n\x07\x63ontent\x18\x03 \x01(\x0b\x32!.cn.tursom.im.protobuf.MsgContent\"N\n\x15SendBroadcastResponse\x12\r\n\x05reqId\x18\x01 \x01(\t\x12\x0f\n\x07success\x18\x02 \x01(\x08\x12\x15\n\rreceiverCount\x18\x03 \x01(\x05\"o\n\tBroadcast\x12\x0e\n\x06sender\x18\x01 \x01(\t\x12\r\n\x05reqId\x18\x02 \x01(\t\x12\x0f\n\x07\x63hannel\x18\x03 \x01(\x05\x12\x32\n\x07\x63ontent\x18\x04 \x01(\x0b\x32!.cn.tursom.im.protobuf.MsgContent*\xbd\x01\n\x08\x46\x61ilType\x12\x0b\n\x07UNKNOWN\x10\x00\x12\x10\n\x0cIN_BLACKLIST\x10\x01\x12\x14\n\x10TARGET_NOT_LOGIN\x10\x02\x12\x14\n\x10MSG_SAVE_FAILURE\x10\x03\x12\x13\n\x0fTARGET_IS_EMPTY\x10\x04\x12\x13\n\x0fGROUP_NOT_EXIST\x10\x05\x12\x0f\n\x0bGROUP_MUTED\x10\x06\x12\x14\n\x10GROUP_USER_MUTED\x10\x07\x12\x15\n\x11USER_NOT_IN_GROUP\x10\x08\x42#B\tTursomMsgH\x01Z\x14./tursom_im_protobufb\x06proto3'
   ,
   dependencies=[google_dot_protobuf_dot_any__pb2.DESCRIPTOR,])
 
@@ -80,8 +80,8 @@ _FAILTYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=1721,
-  serialized_end=1910,
+  serialized_start=2040,
+  serialized_end=2229,
 )
 _sym_db.RegisterEnumDescriptor(_FAILTYPE)
 
@@ -177,22 +177,36 @@ _IMMSG = _descriptor.Descriptor(
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='sendBroadcastRequest', full_name='cn.tursom.im.protobuf.ImMsg.sendBroadcastRequest', index=10,
+      name='listenBroadcastRequest', full_name='cn.tursom.im.protobuf.ImMsg.listenBroadcastRequest', index=10,
       number=11, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='sendBroadcastResponse', full_name='cn.tursom.im.protobuf.ImMsg.sendBroadcastResponse', index=11,
+      name='listenBroadcastResponse', full_name='cn.tursom.im.protobuf.ImMsg.listenBroadcastResponse', index=11,
       number=12, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='broadcast', full_name='cn.tursom.im.protobuf.ImMsg.broadcast', index=12,
+      name='sendBroadcastRequest', full_name='cn.tursom.im.protobuf.ImMsg.sendBroadcastRequest', index=12,
       number=13, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='sendBroadcastResponse', full_name='cn.tursom.im.protobuf.ImMsg.sendBroadcastResponse', index=13,
+      number=14, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='broadcast', full_name='cn.tursom.im.protobuf.ImMsg.broadcast', index=14,
+      number=15, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
@@ -215,7 +229,7 @@ _IMMSG = _descriptor.Descriptor(
     fields=[]),
   ],
   serialized_start=70,
-  serialized_end=807,
+  serialized_end=971,
 )
 
 
@@ -246,8 +260,8 @@ _LOGINREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=809,
-  serialized_end=838,
+  serialized_start=973,
+  serialized_end=1002,
 )
 
 
@@ -285,8 +299,8 @@ _LOGINRESULT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=840,
-  serialized_end=888,
+  serialized_start=1004,
+  serialized_end=1052,
 )
 
 
@@ -329,8 +343,8 @@ _MSGCONTENT = _descriptor.Descriptor(
       create_key=_descriptor._internal_create_key,
     fields=[]),
   ],
-  serialized_start=890,
-  serialized_end=965,
+  serialized_start=1054,
+  serialized_end=1129,
 )
 
 
@@ -375,8 +389,8 @@ _SENDMSGREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=967,
-  serialized_end=1068,
+  serialized_start=1131,
+  serialized_end=1232,
 )
 
 
@@ -435,8 +449,8 @@ _SENDMSGRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1071,
-  serialized_end=1206,
+  serialized_start=1235,
+  serialized_end=1370,
 )
 
 
@@ -481,8 +495,8 @@ _CHATMSG = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1208,
-  serialized_end=1303,
+  serialized_start=1372,
+  serialized_end=1467,
 )
 
 
@@ -527,8 +541,8 @@ _ALLOCATENODEREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1305,
-  serialized_end=1380,
+  serialized_start=1469,
+  serialized_end=1544,
 )
 
 
@@ -566,8 +580,93 @@ _ALLOCATENODERESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1382,
-  serialized_end=1433,
+  serialized_start=1546,
+  serialized_end=1597,
+)
+
+
+_LISTENBROADCASTREQUEST = _descriptor.Descriptor(
+  name='ListenBroadcastRequest',
+  full_name='cn.tursom.im.protobuf.ListenBroadcastRequest',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='reqId', full_name='cn.tursom.im.protobuf.ListenBroadcastRequest.reqId', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='channel', full_name='cn.tursom.im.protobuf.ListenBroadcastRequest.channel', index=1,
+      number=2, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='cancelListen', full_name='cn.tursom.im.protobuf.ListenBroadcastRequest.cancelListen', index=2,
+      number=3, type=8, cpp_type=7, label=1,
+      has_default_value=False, default_value=False,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=1599,
+  serialized_end=1677,
+)
+
+
+_LISTENBROADCASTRESPONSE = _descriptor.Descriptor(
+  name='ListenBroadcastResponse',
+  full_name='cn.tursom.im.protobuf.ListenBroadcastResponse',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='reqId', full_name='cn.tursom.im.protobuf.ListenBroadcastResponse.reqId', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='success', full_name='cn.tursom.im.protobuf.ListenBroadcastResponse.success', index=1,
+      number=2, type=8, cpp_type=7, label=1,
+      has_default_value=False, default_value=False,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=1679,
+  serialized_end=1736,
 )
 
 
@@ -612,8 +711,8 @@ _SENDBROADCASTREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1435,
-  serialized_end=1541,
+  serialized_start=1738,
+  serialized_end=1844,
 )
 
 
@@ -658,8 +757,8 @@ _SENDBROADCASTRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1543,
-  serialized_end=1621,
+  serialized_start=1846,
+  serialized_end=1924,
 )
 
 
@@ -672,22 +771,29 @@ _BROADCAST = _descriptor.Descriptor(
   create_key=_descriptor._internal_create_key,
   fields=[
     _descriptor.FieldDescriptor(
-      name='reqId', full_name='cn.tursom.im.protobuf.Broadcast.reqId', index=0,
+      name='sender', full_name='cn.tursom.im.protobuf.Broadcast.sender', index=0,
       number=1, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='channel', full_name='cn.tursom.im.protobuf.Broadcast.channel', index=1,
-      number=2, type=5, cpp_type=1, label=1,
+      name='reqId', full_name='cn.tursom.im.protobuf.Broadcast.reqId', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='channel', full_name='cn.tursom.im.protobuf.Broadcast.channel', index=2,
+      number=3, type=5, cpp_type=1, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='content', full_name='cn.tursom.im.protobuf.Broadcast.content', index=2,
-      number=3, type=11, cpp_type=10, label=1,
+      name='content', full_name='cn.tursom.im.protobuf.Broadcast.content', index=3,
+      number=4, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
@@ -704,8 +810,8 @@ _BROADCAST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1623,
-  serialized_end=1718,
+  serialized_start=1926,
+  serialized_end=2037,
 )
 
 _IMMSG.fields_by_name['loginRequest'].message_type = _LOGINREQUEST
@@ -715,6 +821,8 @@ _IMMSG.fields_by_name['sendMsgRequest'].message_type = _SENDMSGREQUEST
 _IMMSG.fields_by_name['sendMsgResponse'].message_type = _SENDMSGRESPONSE
 _IMMSG.fields_by_name['allocateNodeRequest'].message_type = _ALLOCATENODEREQUEST
 _IMMSG.fields_by_name['allocateNodeResponse'].message_type = _ALLOCATENODERESPONSE
+_IMMSG.fields_by_name['listenBroadcastRequest'].message_type = _LISTENBROADCASTREQUEST
+_IMMSG.fields_by_name['listenBroadcastResponse'].message_type = _LISTENBROADCASTRESPONSE
 _IMMSG.fields_by_name['sendBroadcastRequest'].message_type = _SENDBROADCASTREQUEST
 _IMMSG.fields_by_name['sendBroadcastResponse'].message_type = _SENDBROADCASTRESPONSE
 _IMMSG.fields_by_name['broadcast'].message_type = _BROADCAST
@@ -742,6 +850,12 @@ _IMMSG.fields_by_name['allocateNodeRequest'].containing_oneof = _IMMSG.oneofs_by
 _IMMSG.oneofs_by_name['content'].fields.append(
   _IMMSG.fields_by_name['allocateNodeResponse'])
 _IMMSG.fields_by_name['allocateNodeResponse'].containing_oneof = _IMMSG.oneofs_by_name['content']
+_IMMSG.oneofs_by_name['content'].fields.append(
+  _IMMSG.fields_by_name['listenBroadcastRequest'])
+_IMMSG.fields_by_name['listenBroadcastRequest'].containing_oneof = _IMMSG.oneofs_by_name['content']
+_IMMSG.oneofs_by_name['content'].fields.append(
+  _IMMSG.fields_by_name['listenBroadcastResponse'])
+_IMMSG.fields_by_name['listenBroadcastResponse'].containing_oneof = _IMMSG.oneofs_by_name['content']
 _IMMSG.oneofs_by_name['content'].fields.append(
   _IMMSG.fields_by_name['sendBroadcastRequest'])
 _IMMSG.fields_by_name['sendBroadcastRequest'].containing_oneof = _IMMSG.oneofs_by_name['content']
@@ -772,6 +886,8 @@ DESCRIPTOR.message_types_by_name['SendMsgResponse'] = _SENDMSGRESPONSE
 DESCRIPTOR.message_types_by_name['ChatMsg'] = _CHATMSG
 DESCRIPTOR.message_types_by_name['AllocateNodeRequest'] = _ALLOCATENODEREQUEST
 DESCRIPTOR.message_types_by_name['AllocateNodeResponse'] = _ALLOCATENODERESPONSE
+DESCRIPTOR.message_types_by_name['ListenBroadcastRequest'] = _LISTENBROADCASTREQUEST
+DESCRIPTOR.message_types_by_name['ListenBroadcastResponse'] = _LISTENBROADCASTRESPONSE
 DESCRIPTOR.message_types_by_name['SendBroadcastRequest'] = _SENDBROADCASTREQUEST
 DESCRIPTOR.message_types_by_name['SendBroadcastResponse'] = _SENDBROADCASTRESPONSE
 DESCRIPTOR.message_types_by_name['Broadcast'] = _BROADCAST
@@ -840,6 +956,20 @@ AllocateNodeResponse = _reflection.GeneratedProtocolMessageType('AllocateNodeRes
   # @@protoc_insertion_point(class_scope:cn.tursom.im.protobuf.AllocateNodeResponse)
   })
 _sym_db.RegisterMessage(AllocateNodeResponse)
+
+ListenBroadcastRequest = _reflection.GeneratedProtocolMessageType('ListenBroadcastRequest', (_message.Message,), {
+  'DESCRIPTOR' : _LISTENBROADCASTREQUEST,
+  '__module__' : 'TursomMsg_pb2'
+  # @@protoc_insertion_point(class_scope:cn.tursom.im.protobuf.ListenBroadcastRequest)
+  })
+_sym_db.RegisterMessage(ListenBroadcastRequest)
+
+ListenBroadcastResponse = _reflection.GeneratedProtocolMessageType('ListenBroadcastResponse', (_message.Message,), {
+  'DESCRIPTOR' : _LISTENBROADCASTRESPONSE,
+  '__module__' : 'TursomMsg_pb2'
+  # @@protoc_insertion_point(class_scope:cn.tursom.im.protobuf.ListenBroadcastResponse)
+  })
+_sym_db.RegisterMessage(ListenBroadcastResponse)
 
 SendBroadcastRequest = _reflection.GeneratedProtocolMessageType('SendBroadcastRequest', (_message.Message,), {
   'DESCRIPTOR' : _SENDBROADCASTREQUEST,
