@@ -1,12 +1,14 @@
 import asyncio
 import logging
-import types
 import threading
+import types
 
 import websockets
+from cacheout import Cache
+from google.protobuf.any_pb2 import Any
+
 import TursomMsg_pb2 as TursomMsg
 import TursomSystemMsg_pb2 as TursomSystemMsg
-from cacheout import Cache
 
 
 class ImWebsocketClient:
@@ -15,35 +17,41 @@ class ImWebsocketClient:
         self.token = token
         self.ws_handler = ImWebSocketHandler()
         self.prev_handler_map = {}
-        self.websocket = None
+        self.web_socket = None
         self.current_id = None
         self.tasks = []
+        self.thread = None
 
-        @self.handler(TursomMsg.ImMsg.loginResult)
+        @self.listen(TursomMsg.ImMsg.loginResult)
         async def handle_login_result(client, im_msg):
             if im_msg.loginResult.success:
                 client.current_id = im_msg.loginResult.imUserId
 
     def connect_backend(self):
-        thread = threading.Thread(target=self.__connect_backend, args=())
-        thread.start()
-        return thread
+        if self.thread is not None:
+            return None
+        self.thread = threading.Thread(target=self.__connect_backend, args=())
+        self.thread.start()
+        return self.thread
 
     def __connect_backend(self):
         asyncio.run(self.connect())
 
     async def connect(self):
-        websocket = await websockets.connect(self.url)
-        self.websocket = websocket
+        if self.web_socket is not None:
+            return
+        self.thread = threading.current_thread()
+        web_socket = await websockets.connect(self.url)
+        self.web_socket = web_socket
 
         login_im_msg = TursomMsg.ImMsg()
         login_im_msg.loginRequest.token = self.token
-        await websocket.send(login_im_msg.SerializeToString())
+        await web_socket.send(login_im_msg.SerializeToString())
 
         # noinspection PyUnresolvedReferences
         try:
-            while not websocket.closed:
-                recv = await websocket.recv()
+            while not web_socket.closed:
+                recv = await web_socket.recv()
                 await self.ws_handler.handle(self, recv)
         except websockets.exceptions.ConnectionClosedOK:
             pass
@@ -57,8 +65,8 @@ class ImWebsocketClient:
         await_task = asyncio.create_task(await_task())
         self.tasks.append(await_task)
 
-    def handler(self, msg_type: TursomMsg.ImMsg.DESCRIPTOR):
-        return self.ws_handler.handler(msg_type)
+    def listen(self, msg_type: TursomMsg.ImMsg.DESCRIPTOR, type=None):
+        return self.ws_handler.listen(msg_type, type)
 
     async def wait(self):
         while len(self.tasks) != 0:
@@ -67,29 +75,35 @@ class ImWebsocketClient:
             if task in self.tasks:
                 self.tasks.remove(task)
 
+    def join(self, timeout=None):
+        if self.thread is not None:
+            self.thread.join(timeout)
+
 
 class ImWebSocketHandler:
     def __init__(self):
         self.handler_map = {}
-        self.chatHandlerMap = Cache(maxsize=4096, ttl=60)
-        self.broadcastResponseHandlerMap = Cache(maxsize=4096, ttl=60)
-        self.broadcastHandlerMap = Cache(maxsize=4096, ttl=60)
+        self.chatHandlerMap = Cache(maxsize=0, ttl=60)
+        self.broadcastResponseHandlerMap = Cache(maxsize=0, ttl=60)
+        self.broadcastHandlerMap = Cache(maxsize=0, ttl=60)
+        self.system = TursomSystemMsgHandler(self)
+        self.broadcast = TursomSystemMsgHandler()
 
-        @self.handler(TursomMsg.ImMsg.sendMsgResponse)
+        @self.listen(TursomMsg.ImMsg.sendMsgResponse)
         async def handle_send_msg_response(client: ImWebsocketClient, im_msg: TursomMsg.ImMsg):
             req_id = im_msg.sendMsgResponse.reqId
             handler = self.chatHandlerMap.get(req_id)
             if handler is not None:
                 await handler(client, im_msg)
 
-        @self.handler(TursomMsg.ImMsg.sendBroadcastRequest)
+        @self.listen(TursomMsg.ImMsg.sendBroadcastRequest)
         async def handle_send_broadcast_response(client: ImWebsocketClient, im_msg: TursomMsg.ImMsg):
             req_id = im_msg.sendBroadcastRequest.reqId
             handler = self.broadcastResponseHandlerMap.get(req_id)
             if handler is not None:
                 await handler(client, im_msg)
 
-        @self.handler(TursomMsg.ImMsg.broadcast)
+        @self.listen(TursomMsg.ImMsg.broadcast)
         async def handle_broadcast_msg(client: ImWebsocketClient, im_msg: TursomMsg.ImMsg):
             channel = im_msg.broadcast.channel
             handler = self.broadcastHandlerMap.get(channel)
@@ -119,7 +133,7 @@ class ImWebSocketHandler:
             print("unsupported msg:", msg)
         pass
 
-    def handler(self, msg_type: TursomMsg.ImMsg.DESCRIPTOR):
+    def listen(self, msg_type: TursomMsg.ImMsg.DESCRIPTOR, func=None):
         def decorator(func):
             if msg_type in self.handler_map:
                 new_func = func
@@ -134,7 +148,10 @@ class ImWebSocketHandler:
             return func
 
         msg_type = msg_type.DESCRIPTOR.name
-        return decorator
+        if func is None:
+            return decorator
+        else:
+            return decorator(func)
 
     def send_chat_msg_handler(self, req_id: str):
         def decorator(func):
@@ -159,5 +176,87 @@ class ImWebSocketHandler:
 
 
 class TursomSystemMsgHandler:
-    def __init__(self, imWebSocketHandler: ImWebSocketHandler = None):
-        self.imWebSocketHandler = imWebSocketHandler # todo
+    def __init__(self, im_web_socket_handler: ImWebSocketHandler = None):
+        self.imWebSocketHandler = im_web_socket_handler
+        self.handlerMap = {}
+        self.msgContextHandlerMap = Cache(maxsize=0, ttl=60)
+        self.liveDanmuRecordListHandlerMap = Cache(maxsize=0, ttl=60)
+        self.liveDanmuRecordHandlerMap = Cache(maxsize=0, ttl=60)
+
+        if im_web_socket_handler is not None:
+            self.register_to_im_web_socket_handler(im_web_socket_handler)
+
+        # noinspection PyPep8Naming
+        @self.register_handler(TursomSystemMsg.ReturnLiveDanmuRecordList)
+        async def ReturnLiveDanmuRecordListHandler(client, receiveMsg, listenLiveRoom):
+            handler = self.liveDanmuRecordListHandlerMap.get(listenLiveRoom.reqId)
+            if handler is not None:
+                await handler(client, receiveMsg, listenLiveRoom)
+
+        # noinspection PyPep8Naming
+        @self.register_handler(TursomSystemMsg.ReturnLiveDanmuRecord)
+        async def ReturnLiveDanmuRecordHandler(client, receiveMsg, listenLiveRoom):
+            handler = self.liveDanmuRecordHandlerMap.get(listenLiveRoom.reqId)
+            if handler is not None:
+                await handler(client, receiveMsg, listenLiveRoom)
+
+    def register_to_im_web_socket_handler(self, im_web_socket_handler: ImWebSocketHandler):
+        im_web_socket_handler.listen(TursomMsg.ImMsg.chatMsg, self.handle)
+        im_web_socket_handler.system = self
+
+    async def default(self, client: ImWebsocketClient, im_msg: TursomMsg.ImMsg):
+        handler = self.msgContextHandlerMap.get(im_msg.broadcast.content.WhichOneof("content"))
+        if handler is not None:
+            await handler(client, im_msg)
+
+    async def handle(self, client: ImWebsocketClient, im_msg: TursomMsg.ImMsg):
+        # noinspection SpellCheckingInspection
+        if im_msg.WhichOneof("content") != "CHATMSG" or im_msg.chatMsgcontent.WhichOneof("content") != "EXT":
+            return await self.default(client, im_msg)
+        ext = im_msg.chatMsg.content.ext
+        await self.handle_ext(client, im_msg, ext)
+
+    async def handle_broadcast(self, client: ImWebsocketClient, im_msg: TursomMsg.ImMsg):
+        # noinspection SpellCheckingInspection
+        if im_msg.WhichOneof("content") != "BROADCAST" or im_msg.broadcast.content.WhichOneof("content") != "EXT":
+            return await self.default(client, im_msg)
+        ext = im_msg.chatMsg.content.ext
+        await self.handle_ext(client, im_msg, ext)
+
+    async def handle_ext(self, client: ImWebsocketClient, im_msg: TursomMsg.ImMsg, ext: Any):
+        for msg_type, handler in self.handlerMap.items():
+            if ext.Is(msg_type):
+                msg = msg_type()
+                ext.Unpack(msg)
+                await handler(client, im_msg, msg)
+                return
+
+    # noinspection PyUnresolvedReferences
+    def register_handler(self, handle_type):
+        def decorator(func):
+            self.handlerMap[handle_type] = func
+            return func
+
+        return decorator
+
+    # noinspection PyPep8Naming
+    def addLiveDanmuRecordListHandler(self, reqId: str, handler=None):
+        def decorator(func):
+            self.liveDanmuRecordListHandlerMap.add(reqId, func)
+            return func
+
+        if handler is None:
+            return decorator
+        else:
+            return decorator(handler)
+
+    # noinspection PyPep8Naming
+    def addLiveDanmuRecordHandler(self, reqId: str, handler=None):
+        def decorator(func):
+            self.liveDanmuRecordHandlerMap.add(reqId, func)
+            return func
+
+        if handler is None:
+            return decorator
+        else:
+            return decorator(handler)
