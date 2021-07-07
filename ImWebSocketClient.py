@@ -10,8 +10,9 @@ from google.protobuf.any_pb2 import Any
 
 import TursomMsg_pb2 as TursomMsg
 import TursomSystemMsg_pb2 as TursomSystemMsg
+import snowflake
 
-__ImWebSocketClientNumber = 0
+ImWebSocketClientNumber = 0
 
 
 class ImWebSocketClient:
@@ -26,20 +27,22 @@ class ImWebSocketClient:
         self.thread = None
         self.on_open_handler = None
         self.on_close_handler = None
+        self.snowflake = snowflake.snowflake
 
         @self.listen(TursomMsg.ImMsg.loginResult)
         async def handle_login_result(client, im_msg):
             if im_msg.loginResult.success:
                 client.current_id = im_msg.loginResult.imUserId
+                await self.allocate_node()
 
     def connect_backend(self) -> Optional[threading.Thread]:
         with self.lock:
             if self.thread is not None:
                 return
-            global __ImWebSocketClientNumber
-            __ImWebSocketClientNumber += 1
+            global ImWebSocketClientNumber
+            ImWebSocketClientNumber += 1
             self.thread = threading.Thread(
-                name=f"ImWebSocketClient-{__ImWebSocketClientNumber}", daemon=True,
+                name=f"ImWebSocketClient-{ImWebSocketClientNumber}", daemon=True,
                 target=self.__connect_backend, args=())
         self.thread.start()
         return self.thread
@@ -57,7 +60,7 @@ class ImWebSocketClient:
 
         login_im_msg = TursomMsg.ImMsg()
         login_im_msg.loginRequest.token = self.token
-        await web_socket.send(login_im_msg.SerializeToString())
+        await self.send(login_im_msg)
 
         with self.lock:
             if self.on_open_handler is not None:
@@ -74,6 +77,18 @@ class ImWebSocketClient:
         with self.lock:
             if self.on_close_handler is not None:
                 await self.on_close_handler(self)
+
+    async def send(self, im_msg: TursomMsg.ImMsg):
+        await self.web_socket.send(im_msg.SerializeToString())
+
+    async def send_ext_msg(self, receiver: str, ext, req_id: Optional[str] = None):
+        if req_id is None:
+            req_id = self.snowflake.id_str
+        msg = TursomMsg.ImMsg()
+        msg.sendMsgRequest.receiver = receiver
+        msg.sendMsgRequest.reqId = req_id
+        msg.sendMsgRequest.content.ext.Pack(ext)
+        await self.send(msg)
 
     def launch(self, task: types.coroutine):
         current_thread = threading.current_thread()
@@ -95,10 +110,7 @@ class ImWebSocketClient:
         return self.handler.listen(msg_type, handler)
 
     # noinspection DuplicatedCode
-    def on_open(
-            self,
-            handler=None
-    ):
+    def on_open(self, handler=None):
         def decorator(func: Callable[[ImWebSocketClient], Coroutine[None, None, None]]):
             prev_func = self.on_open_handler
             with self.lock:
@@ -118,10 +130,7 @@ class ImWebSocketClient:
             return decorator(handler)
 
     # noinspection DuplicatedCode
-    def on_close(
-            self,
-            handler=None
-    ):
+    def on_close(self, handler=None):
         def decorator(func: Callable[[ImWebSocketClient], Coroutine[None, None, None]]):
             prev_func = self.on_close_handler
 
@@ -152,9 +161,46 @@ class ImWebSocketClient:
         if self.thread is not None:
             self.thread.join(timeout)
 
+    async def allocate_node(self, current_node_name: str = ""):
+        req_id = self.snowflake.id_str
+        cont = asyncio.Future()
+
+        @self.handler.listen(TursomMsg.ImMsg.allocateNodeResponse)
+        async def handle_recv(_: ImWebSocketClient, im_msg: TursomMsg.ImMsg):
+            cont.set_result(None)
+            self.snowflake = snowflake.Snowflake(im_msg.allocateNodeResponse.node)
+
+            @self.handler.access_handler_map()
+            def remote_handler(handler_map: dict):
+                if "allocateNodeResponse" in handler_map:
+                    del handler_map["allocateNodeResponse"]
+
+        allocate_node_request = TursomMsg.ImMsg()
+        allocate_node_request.allocateNodeRequest.reqId = req_id
+        await self.send(allocate_node_request)
+        await cont
+
+    async def call(
+            self,
+            receiver: str,
+            ext,
+            req_id: Optional[str] = None
+    ):
+        if req_id is None:
+            req_id = self.snowflake.id_str
+        cont = asyncio.Future()
+
+        @self.handler.send_chat_msg_handler(req_id)
+        async def send_chat_msg_handler(_, receive_msg: TursomMsg.ImMsg):
+            cont.set_result(receive_msg)
+
+        await self.send_ext_msg(receiver, ext, req_id)
+        return await cont
+
 
 class ImWebSocketHandler:
     def __init__(self):
+        self.logger = logging.getLogger("ImWebSocketHandler")
         self.handler_map_lock = threading.RLock()
         self.handler_map = {}
         self.chatHandlerMap = Cache(maxsize=0, ttl=60)
@@ -195,7 +241,7 @@ class ImWebSocketHandler:
         except Exception as e:
             logging.exception(e)
             return
-        print(msg)
+        self.logger.debug("receive msg %s", msg)
         content = msg.WhichOneof("content")
         with self.handler_map_lock:
             if content in self.handler_map:
@@ -229,6 +275,20 @@ class ImWebSocketHandler:
             return func
 
         msg_type = msg_type.DESCRIPTOR.name
+        if handler is None:
+            return decorator
+        else:
+            return decorator(handler)
+
+    def access_handler_map(
+            self,
+            handler: Optional[Callable[[dict], None]] = None
+    ):
+        def decorator(func: Callable[[dict], None]):
+            with self.handler_map_lock:
+                func(self.handler_map)
+            return func
+
         if handler is None:
             return decorator
         else:
@@ -313,8 +373,7 @@ class TursomSystemMsgHandler:
             await handler(client, im_msg)
 
     async def handle(self, client: ImWebSocketClient, im_msg: TursomMsg.ImMsg):
-        # noinspection SpellCheckingInspection
-        if im_msg.WhichOneof("content") != "CHATMSG" or im_msg.chatMsgcontent.WhichOneof("content") != "EXT":
+        if im_msg.WhichOneof("content") != "chatMsg" or im_msg.chatMsg.content.WhichOneof("content") != "ext":
             return await self.default(client, im_msg)
         ext = im_msg.chatMsg.content.ext
         await self.handle_ext(client, im_msg, ext)
@@ -329,7 +388,7 @@ class TursomSystemMsgHandler:
     async def handle_ext(self, client: ImWebSocketClient, im_msg: TursomMsg.ImMsg, ext: Any):
         with self.handlerMapLock:
             for msg_type, handler in self.handlerMap.items():
-                if ext.Is(msg_type):
+                if ext.Is(msg_type.DESCRIPTOR):
                     msg = msg_type()
                     ext.Unpack(msg)
                     await handler(client, im_msg, msg)
@@ -354,7 +413,7 @@ class TursomSystemMsgHandler:
     # noinspection PyPep8Naming
     def addLiveDanmuRecordListHandler(
             self, reqId: str,
-            handler: Optional[Callable[[ImWebSocketClient, TursomMsg.ImMsg],
+            handler: Optional[Callable[[ImWebSocketClient, TursomMsg.ImMsg, TursomSystemMsg.ReturnLiveDanmuRecordList],
                                        Coroutine[None, None, None]]] = None
     ):
         def decorator(func):
@@ -369,7 +428,7 @@ class TursomSystemMsgHandler:
     # noinspection PyPep8Naming
     def addLiveDanmuRecordHandler(
             self, reqId: str,
-            handler: Optional[Callable[[ImWebSocketClient, TursomMsg.ImMsg],
+            handler: Optional[Callable[[ImWebSocketClient, TursomMsg.ImMsg, TursomSystemMsg.ReturnLiveDanmuRecord],
                                        Coroutine[None, None, None]]] = None
     ):
         def decorator(func):
@@ -380,3 +439,92 @@ class TursomSystemMsgHandler:
             return decorator
         else:
             return decorator(handler)
+
+
+async def im_remote_call(
+        client: ImWebSocketClient,
+        receiver: str,
+        ext,
+        register_handler: Callable[[Callable[[object], Coroutine[None, None, None]]],
+                                   Coroutine[None, None, None]],
+        timeout: float = 5,
+) -> Optional[object]:
+    cont = asyncio.Future()
+
+    async def recv(result):
+        if not cont.done():
+            cont.set_result(result)
+
+    await register_handler(recv)
+    try:
+        receive_msg = await asyncio.wait_for(client.call(receiver, ext), timeout)
+    except asyncio.TimeoutError:
+        return None
+    if not receive_msg.sendMsgResponse.success:
+        return None
+    try:
+        return await asyncio.wait_for(cont, timeout)
+    except asyncio.TimeoutError:
+        return None
+
+
+async def call_get_live_danmu_record_list(
+        client: ImWebSocketClient,
+        receiver: str,
+        room_id: str,
+        skip: int = 0,
+        limit: int = 0,
+        timeout: float = 5
+):
+    call_req_id = client.snowflake.id_str
+    req_msg = TursomSystemMsg.GetLiveDanmuRecordList()
+    req_msg.reqId = call_req_id
+    req_msg.roomId = room_id
+    req_msg.skip = skip
+    req_msg.limit = limit
+
+    async def register_handler(cont):
+        # noinspection PyPep8Naming
+        @client.handler.system.addLiveDanmuRecordListHandler(call_req_id)
+        async def addLiveDanmuRecordListHandler(
+                _, _2,
+                listenLiveRoom: TursomSystemMsg.ReturnLiveDanmuRecordList
+        ):
+            await cont(listenLiveRoom)
+
+    return await im_remote_call(
+        client,
+        receiver,
+        req_msg,
+        register_handler,
+        timeout
+    )
+
+
+async def call_get_live_danmu_record(
+        client: ImWebSocketClient,
+        receiver: str,
+        live_danmu_record_id: str,
+        timeout: float = 5
+):
+    call_req_id = client.snowflake.id_str
+    req_msg = TursomSystemMsg.GetLiveDanmuRecord()
+    req_msg.reqId = call_req_id
+    req_msg.liveDanmuRecordId = live_danmu_record_id
+
+    async def register_handler(cont):
+        # noinspection PyPep8Naming
+        @client.handler.system.addLiveDanmuRecordHandler(call_req_id)
+        async def addLiveDanmuRecordListHandler(
+                _, _2,
+                listenLiveRoom: TursomSystemMsg.ReturnLiveDanmuRecord
+        ):
+            cont(listenLiveRoom)
+
+    return await im_remote_call(
+        client,
+        receiver,
+        req_msg,
+        register_handler,
+        timeout
+    )
