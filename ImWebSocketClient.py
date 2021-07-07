@@ -11,7 +11,7 @@ import TursomMsg_pb2 as TursomMsg
 import TursomSystemMsg_pb2 as TursomSystemMsg
 
 
-class ImWebsocketClient:
+class ImWebSocketClient:
     def __init__(self, url: str, token: str):
         self.url = url
         self.token = token
@@ -90,21 +90,21 @@ class ImWebSocketHandler:
         self.broadcast = TursomSystemMsgHandler()
 
         @self.listen(TursomMsg.ImMsg.sendMsgResponse)
-        async def handle_send_msg_response(client: ImWebsocketClient, im_msg: TursomMsg.ImMsg):
+        async def handle_send_msg_response(client: ImWebSocketClient, im_msg: TursomMsg.ImMsg):
             req_id = im_msg.sendMsgResponse.reqId
             handler = self.chatHandlerMap.get(req_id)
             if handler is not None:
                 await handler(client, im_msg)
 
         @self.listen(TursomMsg.ImMsg.sendBroadcastRequest)
-        async def handle_send_broadcast_response(client: ImWebsocketClient, im_msg: TursomMsg.ImMsg):
+        async def handle_send_broadcast_response(client: ImWebSocketClient, im_msg: TursomMsg.ImMsg):
             req_id = im_msg.sendBroadcastRequest.reqId
             handler = self.broadcastResponseHandlerMap.get(req_id)
             if handler is not None:
                 await handler(client, im_msg)
 
         @self.listen(TursomMsg.ImMsg.broadcast)
-        async def handle_broadcast_msg(client: ImWebsocketClient, im_msg: TursomMsg.ImMsg):
+        async def handle_broadcast_msg(client: ImWebSocketClient, im_msg: TursomMsg.ImMsg):
             channel = im_msg.broadcast.channel
             handler = self.broadcastHandlerMap.get(channel)
             if handler is not None:
@@ -114,7 +114,7 @@ class ImWebSocketHandler:
         self.handle_send_broadcast_response = handle_send_broadcast_response
         self.handle_broadcast_msg = handle_broadcast_msg
 
-    async def handle(self, client: ImWebsocketClient, data: bytes):
+    async def handle(self, client: ImWebSocketClient, data: bytes):
         msg = TursomMsg.ImMsg()
         try:
             msg.ParseFromString(data)
@@ -139,7 +139,7 @@ class ImWebSocketHandler:
                 new_func = func
                 prev_func = self.handler_map[msg_type]
 
-                async def func_proxy(client: ImWebsocketClient, im_msg: TursomMsg.ImMsg):
+                async def func_proxy(client: ImWebSocketClient, im_msg: TursomMsg.ImMsg):
                     await prev_func(client, im_msg)
                     await new_func(client, im_msg)
 
@@ -204,26 +204,26 @@ class TursomSystemMsgHandler:
         im_web_socket_handler.listen(TursomMsg.ImMsg.chatMsg, self.handle)
         im_web_socket_handler.system = self
 
-    async def default(self, client: ImWebsocketClient, im_msg: TursomMsg.ImMsg):
+    async def default(self, client: ImWebSocketClient, im_msg: TursomMsg.ImMsg):
         handler = self.msgContextHandlerMap.get(im_msg.broadcast.content.WhichOneof("content"))
         if handler is not None:
             await handler(client, im_msg)
 
-    async def handle(self, client: ImWebsocketClient, im_msg: TursomMsg.ImMsg):
+    async def handle(self, client: ImWebSocketClient, im_msg: TursomMsg.ImMsg):
         # noinspection SpellCheckingInspection
         if im_msg.WhichOneof("content") != "CHATMSG" or im_msg.chatMsgcontent.WhichOneof("content") != "EXT":
             return await self.default(client, im_msg)
         ext = im_msg.chatMsg.content.ext
         await self.handle_ext(client, im_msg, ext)
 
-    async def handle_broadcast(self, client: ImWebsocketClient, im_msg: TursomMsg.ImMsg):
+    async def handle_broadcast(self, client: ImWebSocketClient, im_msg: TursomMsg.ImMsg):
         # noinspection SpellCheckingInspection
         if im_msg.WhichOneof("content") != "BROADCAST" or im_msg.broadcast.content.WhichOneof("content") != "EXT":
             return await self.default(client, im_msg)
         ext = im_msg.chatMsg.content.ext
         await self.handle_ext(client, im_msg, ext)
 
-    async def handle_ext(self, client: ImWebsocketClient, im_msg: TursomMsg.ImMsg, ext: Any):
+    async def handle_ext(self, client: ImWebSocketClient, im_msg: TursomMsg.ImMsg, ext: Any):
         for msg_type, handler in self.handlerMap.items():
             if ext.Is(msg_type):
                 msg = msg_type()
