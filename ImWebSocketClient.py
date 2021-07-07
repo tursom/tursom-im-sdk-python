@@ -2,6 +2,7 @@ import asyncio
 import logging
 import threading
 import types
+from typing import Callable, Coroutine, Optional
 
 import websockets
 from cacheout import Cache
@@ -10,27 +11,36 @@ from google.protobuf.any_pb2 import Any
 import TursomMsg_pb2 as TursomMsg
 import TursomSystemMsg_pb2 as TursomSystemMsg
 
+__ImWebSocketClientNumber = 0
+
 
 class ImWebSocketClient:
     def __init__(self, url: str, token: str):
         self.url = url
         self.token = token
-        self.ws_handler = ImWebSocketHandler()
-        self.prev_handler_map = {}
+        self.handler = ImWebSocketHandler()
+        self.lock = threading.RLock()
         self.web_socket = None
         self.current_id = None
         self.tasks = []
         self.thread = None
+        self.on_open_handler = None
+        self.on_close_handler = None
 
         @self.listen(TursomMsg.ImMsg.loginResult)
         async def handle_login_result(client, im_msg):
             if im_msg.loginResult.success:
                 client.current_id = im_msg.loginResult.imUserId
 
-    def connect_backend(self):
-        if self.thread is not None:
-            return None
-        self.thread = threading.Thread(target=self.__connect_backend, args=())
+    def connect_backend(self) -> Optional[threading.Thread]:
+        with self.lock:
+            if self.thread is not None:
+                return
+            global __ImWebSocketClientNumber
+            __ImWebSocketClientNumber += 1
+            self.thread = threading.Thread(
+                name=f"ImWebSocketClient-{__ImWebSocketClientNumber}", daemon=True,
+                target=self.__connect_backend, args=())
         self.thread.start()
         return self.thread
 
@@ -38,25 +48,38 @@ class ImWebSocketClient:
         asyncio.run(self.connect())
 
     async def connect(self):
-        if self.web_socket is not None:
-            return
-        self.thread = threading.current_thread()
-        web_socket = await websockets.connect(self.url)
-        self.web_socket = web_socket
+        with self.lock:
+            if self.web_socket is not None:
+                return
+            self.thread = threading.current_thread()
+            web_socket = await websockets.connect(self.url)
+            self.web_socket = web_socket
 
         login_im_msg = TursomMsg.ImMsg()
         login_im_msg.loginRequest.token = self.token
         await web_socket.send(login_im_msg.SerializeToString())
 
+        with self.lock:
+            if self.on_open_handler is not None:
+                await self.on_open_handler(self)
+
         # noinspection PyUnresolvedReferences
         try:
             while not web_socket.closed:
                 recv = await web_socket.recv()
-                await self.ws_handler.handle(self, recv)
+                await self.handler.handle(self, recv)
         except websockets.exceptions.ConnectionClosedOK:
             pass
 
+        with self.lock:
+            if self.on_close_handler is not None:
+                await self.on_close_handler(self)
+
     def launch(self, task: types.coroutine):
+        current_thread = threading.current_thread()
+        if current_thread != self.thread:
+            raise RuntimeWarning(f"invalid thread {current_thread}")
+
         async def await_task():
             await task
             if await_task in self.tasks:
@@ -65,8 +88,58 @@ class ImWebSocketClient:
         await_task = asyncio.create_task(await_task())
         self.tasks.append(await_task)
 
-    def listen(self, msg_type: TursomMsg.ImMsg.DESCRIPTOR, type=None):
-        return self.ws_handler.listen(msg_type, type)
+    def listen(
+            self, msg_type: TursomMsg.ImMsg.DESCRIPTOR,
+            handler=None
+    ):
+        return self.handler.listen(msg_type, handler)
+
+    # noinspection DuplicatedCode
+    def on_open(
+            self,
+            handler=None
+    ):
+        def decorator(func: Callable[[ImWebSocketClient], Coroutine[None, None, None]]):
+            prev_func = self.on_open_handler
+            with self.lock:
+                if prev_func is not None:
+                    async def func_proxy(client: ImWebSocketClient):
+                        await prev_func(client)
+                        await func(client)
+
+                    self.on_open_handler = func_proxy
+                else:
+                    self.on_open_handler = func
+            return func
+
+        if handler is None:
+            return decorator
+        else:
+            return decorator(handler)
+
+    # noinspection DuplicatedCode
+    def on_close(
+            self,
+            handler=None
+    ):
+        def decorator(func: Callable[[ImWebSocketClient], Coroutine[None, None, None]]):
+            prev_func = self.on_close_handler
+
+            with self.lock:
+                if prev_func is not None:
+                    async def func_proxy(client: ImWebSocketClient):
+                        await prev_func(client)
+                        await func(client)
+
+                    self.on_close_handler = func_proxy
+                else:
+                    self.on_close_handler = func
+            return func
+
+        if handler is None:
+            return decorator
+        else:
+            return decorator(handler)
 
     async def wait(self):
         while len(self.tasks) != 0:
@@ -75,13 +148,14 @@ class ImWebSocketClient:
             if task in self.tasks:
                 self.tasks.remove(task)
 
-    def join(self, timeout=None):
+    def join(self, timeout: float = None):
         if self.thread is not None:
             self.thread.join(timeout)
 
 
 class ImWebSocketHandler:
     def __init__(self):
+        self.handler_map_lock = threading.RLock()
         self.handler_map = {}
         self.chatHandlerMap = Cache(maxsize=0, ttl=60)
         self.broadcastResponseHandlerMap = Cache(maxsize=0, ttl=60)
@@ -123,61 +197,90 @@ class ImWebSocketHandler:
             return
         print(msg)
         content = msg.WhichOneof("content")
+        with self.handler_map_lock:
+            if content in self.handler_map:
+                try:
+                    client.launch(self.handler_map[content](client, msg))
+                except Exception as e:
+                    logging.exception(e)
+            else:
+                print("unsupported msg:", msg)
 
-        if content in self.handler_map:
-            try:
-                client.launch(self.handler_map[content](client, msg))
-            except Exception as e:
-                print(e)
-        else:
-            print("unsupported msg:", msg)
-        pass
+    def listen(
+            self, msg_type: TursomMsg.ImMsg.DESCRIPTOR,
+            handler: Optional[Callable[[ImWebSocketClient, TursomMsg.ImMsg],
+                                       Coroutine[None, None, None]]] = None
+    ):
+        def decorator(func: Callable[[ImWebSocketClient, TursomMsg.ImMsg],
+                                     Coroutine[None, None, None]]):
+            with self.handler_map_lock:
+                if msg_type in self.handler_map:
+                    new_func = func
+                    prev_func = self.handler_map[msg_type]
 
-    def listen(self, msg_type: TursomMsg.ImMsg.DESCRIPTOR, func=None):
-        def decorator(func):
-            if msg_type in self.handler_map:
-                new_func = func
-                prev_func = self.handler_map[msg_type]
+                    async def func_proxy(client: ImWebSocketClient, im_msg: TursomMsg.ImMsg):
+                        await prev_func(client, im_msg)
+                        await new_func(client, im_msg)
 
-                async def func_proxy(client: ImWebSocketClient, im_msg: TursomMsg.ImMsg):
-                    await prev_func(client, im_msg)
-                    await new_func(client, im_msg)
+                    self.handler_map[msg_type] = func_proxy
+                else:
+                    self.handler_map[msg_type] = func
 
-                func = func_proxy
-            self.handler_map[msg_type] = func
             return func
 
         msg_type = msg_type.DESCRIPTOR.name
-        if func is None:
+        if handler is None:
             return decorator
         else:
-            return decorator(func)
+            return decorator(handler)
 
-    def send_chat_msg_handler(self, req_id: str):
+    def send_chat_msg_handler(
+            self, req_id: str,
+            handler: Optional[Callable[[ImWebSocketClient, TursomMsg.ImMsg],
+                                       Coroutine[None, None, None]]] = None
+    ):
         def decorator(func):
             self.chatHandlerMap.set(req_id, func)
             return func
 
-        return decorator
+        if handler is None:
+            return decorator
+        else:
+            return decorator(handler)
 
-    def send_broadcast_handler(self, req_id: str):
+    def send_broadcast_handler(
+            self, req_id: str,
+            handler: Optional[Callable[[ImWebSocketClient, TursomMsg.ImMsg],
+                                       Coroutine[None, None, None]]] = None
+    ):
         def decorator(func):
             self.broadcastResponseHandlerMap.set(req_id, func)
             return func
 
-        return decorator
+        if handler is None:
+            return decorator
+        else:
+            return decorator(handler)
 
-    def recv_broadcast_handler(self, channel: int):
+    def recv_broadcast_handler(
+            self, channel: int,
+            handler: Optional[Callable[[ImWebSocketClient, TursomMsg.ImMsg],
+                                       Coroutine[None, None, None]]] = None
+    ):
         def decorator(func):
             self.broadcastHandlerMap.set(channel, func)
             return func
 
-        return decorator
+        if handler is None:
+            return decorator
+        else:
+            return decorator(handler)
 
 
 class TursomSystemMsgHandler:
     def __init__(self, im_web_socket_handler: ImWebSocketHandler = None):
         self.imWebSocketHandler = im_web_socket_handler
+        self.handlerMapLock = threading.RLock()
         self.handlerMap = {}
         self.msgContextHandlerMap = Cache(maxsize=0, ttl=60)
         self.liveDanmuRecordListHandlerMap = Cache(maxsize=0, ttl=60)
@@ -224,23 +327,36 @@ class TursomSystemMsgHandler:
         await self.handle_ext(client, im_msg, ext)
 
     async def handle_ext(self, client: ImWebSocketClient, im_msg: TursomMsg.ImMsg, ext: Any):
-        for msg_type, handler in self.handlerMap.items():
-            if ext.Is(msg_type):
-                msg = msg_type()
-                ext.Unpack(msg)
-                await handler(client, im_msg, msg)
-                return
+        with self.handlerMapLock:
+            for msg_type, handler in self.handlerMap.items():
+                if ext.Is(msg_type):
+                    msg = msg_type()
+                    ext.Unpack(msg)
+                    await handler(client, im_msg, msg)
+                    return
 
     # noinspection PyUnresolvedReferences
-    def register_handler(self, handle_type):
+    def register_handler(
+            self, handle_type,
+            handler: Optional[Callable[[ImWebSocketClient, TursomMsg.ImMsg],
+                                       Coroutine[None, None, None]]] = None
+    ):
         def decorator(func):
-            self.handlerMap[handle_type] = func
+            with self.handlerMapLock:
+                self.handlerMap[handle_type] = func
             return func
 
-        return decorator
+        if handler is None:
+            return decorator
+        else:
+            return decorator(handler)
 
     # noinspection PyPep8Naming
-    def addLiveDanmuRecordListHandler(self, reqId: str, handler=None):
+    def addLiveDanmuRecordListHandler(
+            self, reqId: str,
+            handler: Optional[Callable[[ImWebSocketClient, TursomMsg.ImMsg],
+                                       Coroutine[None, None, None]]] = None
+    ):
         def decorator(func):
             self.liveDanmuRecordListHandlerMap.add(reqId, func)
             return func
@@ -251,7 +367,11 @@ class TursomSystemMsgHandler:
             return decorator(handler)
 
     # noinspection PyPep8Naming
-    def addLiveDanmuRecordHandler(self, reqId: str, handler=None):
+    def addLiveDanmuRecordHandler(
+            self, reqId: str,
+            handler: Optional[Callable[[ImWebSocketClient, TursomMsg.ImMsg],
+                                       Coroutine[None, None, None]]] = None
+    ):
         def decorator(func):
             self.liveDanmuRecordHandlerMap.add(reqId, func)
             return func
